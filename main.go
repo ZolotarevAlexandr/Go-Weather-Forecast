@@ -70,16 +70,12 @@ func getLangLong(city string) (*LatLong, error) {
 	return &responce.Results[0], nil
 }
 
-func getWeather(city string) (*WeatherData, error) {
+func getWeather(latLong LatLong) ([]HourWeatherData, error) {
 	client, err := omgo.NewClient()
 	if err != nil {
 		return nil, fmt.Errorf("error while creating omgo client: %w", err)
 	}
 
-	latLong, err := getLangLong(city)
-	if err != nil {
-		return nil, fmt.Errorf("error while searching city coordinates: %w", err)
-	}
 	loc, err := omgo.NewLocation(latLong.Latitude, latLong.Longitude)
 	if err != nil {
 		return nil, fmt.Errorf("error while searching omgo location: %w", err)
@@ -93,45 +89,59 @@ func getWeather(city string) (*WeatherData, error) {
 		return nil, fmt.Errorf("error while getting omgo responce: %w", err)
 	}
 
-	var forecast WeatherData
-	forecast.City = city
+	var forecast []HourWeatherData
 	for i := 0; i < len(resp.HourlyTimes); i++ {
-		forecast.Forecast = append(forecast.Forecast, HourWeatherData{resp.HourlyTimes[i],
+		forecast = append(forecast, HourWeatherData{resp.HourlyTimes[i],
 			resp.HourlyMetrics["temperature_2m"][i],
 			resp.HourlyMetrics["precipitation_probability"][i]})
 	}
-	return &forecast, nil
+	return forecast, nil
 }
 
-func getHandler(ctx *gin.Context) {
+func getWeatherData(city string) (*WeatherData, error) {
+	latLong, err := getLangLong(city)
+	if err != nil {
+		return nil, fmt.Errorf("error while getting city coordinates: %w", err)
+	}
+
+	weather, err := getWeather(*latLong)
+	if err != nil {
+		return nil, fmt.Errorf("error while getting weather data: %w", err)
+	}
+
+	weatherData := WeatherData{city, weather}
+	return &weatherData, nil
+}
+
+func serverGetHandler(ctx *gin.Context) {
 	city := ctx.Query("city")
-	weather, err := getWeather(city)
+	weatherData, err := getWeatherData(city)
+	if err != nil {
+		ctx.HTML(http.StatusInternalServerError, "error.html", gin.H{"error": err.Error()})
+		return
+	}
+	ctx.HTML(http.StatusOK, "weather.html", *weatherData)
+}
+
+func APIgetHandler(ctx *gin.Context) {
+	city := ctx.Query("city")
+	weatherData, err := getWeatherData(city)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	ctx.HTML(http.StatusOK, "weather.html", *weather)
-}
-
-func getAPIHandler(ctx *gin.Context) {
-	city := ctx.Query("city")
-	weather, err := getWeather(city)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	ctx.JSON(http.StatusOK, *weather)
+	ctx.JSON(http.StatusOK, *weatherData)
 }
 
 func main() {
 	ginServer := gin.Default()
 	ginServer.LoadHTMLGlob("views/*")
 
-	ginServer.GET("/weather", getHandler)
+	ginServer.GET("/weather", serverGetHandler)
 	ginServer.GET("/", func(ctx *gin.Context) {
 		ctx.HTML(http.StatusOK, "index.html", nil)
 	})
-	ginServer.GET("/api/weather", getAPIHandler)
+	ginServer.GET("/api/weather", APIgetHandler)
 
 	err := ginServer.Run("localhost:8000")
 	if err != nil {

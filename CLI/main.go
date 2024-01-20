@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -56,7 +55,8 @@ func main() {
 		fmt.Println("Input city name (q to exit):")
 		_, err := fmt.Scanf("%s\n", &input)
 		if err != nil {
-			log.Fatal(err)
+			fmt.Println(err)
+			continue
 		}
 		
 		if input == "q" {
@@ -65,25 +65,29 @@ func main() {
 
 		forecast, err := getData(input)
 		if err != nil {
-			log.Fatal(err)
+			fmt.Println(err)
+			continue
 		}
 
 		w := tabwriter.NewWriter(os.Stdout, 1, 1, 1, ' ', 0)
 		fmt.Printf("Weather for %v\n", forecast.City)
 		_, err = fmt.Fprint(w, "Date\tTemperature\tPrecipitations\t\n")
 		if err != nil {
-			log.Fatal(err)
+			fmt.Println(err)
+			continue
 		}
 		for _, hourForecast := range forecast.Forecast {
 			_, err = fmt.Fprintf(w, "%v\t%vC°\t%v%%\t\n", hourForecast.DateTime.Format("02.01 Mon 15:04"), hourForecast.Temperature, hourForecast.Precipitations)
 			if err != nil {
-				log.Fatal(err)
+				fmt.Println(err)
+				continue
 			}
 		}
 
 		err = w.Flush()
 		if err != nil {
-			log.Fatal(err)
+			fmt.Println(err)
+			continue
 		}
 	}
 }
