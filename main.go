@@ -38,8 +38,9 @@ type WeatherData struct {
 
 func getLangLong(city string) (*LatLong, error) {
 	client := http.Client{Timeout: 5 * time.Second}
-	apiUlr := "https://geocoding-api.open-meteo.com/v1/search"
-	req, err := http.NewRequest(http.MethodGet, apiUlr, nil)
+	const apiUrl = "https://geocoding-api.open-meteo.com/v1/search"
+
+	req, err := http.NewRequest(http.MethodGet, apiUrl, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error while creating request: %w", err)
 	}
@@ -130,7 +131,7 @@ func main() {
 	ginServer.GET("/", func(ctx *gin.Context) {
 		ctx.HTML(http.StatusOK, "index.html", nil)
 	})
-	ginServer.GET("/API/weather", getAPIHandler)
+	ginServer.GET("/api/weather", getAPIHandler)
 
 	err := ginServer.Run("localhost:8000")
 	if err != nil {

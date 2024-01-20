@@ -9,13 +9,13 @@
 			<tr>
 				<th>Date</th>
 				<th>Temperature</th>
-				<th>Precipitations %</th>
+				<th>Precipitations</th>
 			</tr>
 			{{ range .Forecast }}
 			<tr>
 				<td>{{ .DateTime.Format "02.01 Mon 15:04" }}</td>
-				<td>{{ .Temperature }}</td>
-				<td>{{ .Precipitations }}</td>
+				<td>{{ .Temperature }} C°</td>
+				<td>{{ .Precipitations }}%</td>
 			</tr>
 			{{ end }}
 		</table>
