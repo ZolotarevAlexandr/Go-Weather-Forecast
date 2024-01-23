@@ -136,6 +136,7 @@ func APIgetHandler(ctx *gin.Context) {
 func main() {
 	ginServer := gin.Default()
 	ginServer.LoadHTMLGlob("views/*")
+	ginServer.Static("/css", "./css/")
 
 	ginServer.GET("/weather", serverGetHandler)
 	ginServer.GET("/", func(ctx *gin.Context) {

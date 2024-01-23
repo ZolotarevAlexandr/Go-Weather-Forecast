@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -38,7 +39,15 @@ func getData(city string) (WeatherData, error) {
 	if err != nil {
 		return WeatherData{}, err
 	} else if resp.StatusCode != http.StatusOK {
-		return WeatherData{}, errors.New("status code not 200")
+		respErr, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return WeatherData{}, err
+		}
+		var errObj map[string]string
+		if err = json.Unmarshal(respErr, &errObj); err != nil {
+			return WeatherData{}, err
+		}
+		return WeatherData{}, errors.New(fmt.Sprintf("status code not 200. Error: %v", errObj["error"]))
 	}
 	
 	var result WeatherData
@@ -71,13 +80,13 @@ func main() {
 
 		w := tabwriter.NewWriter(os.Stdout, 1, 1, 1, ' ', 0)
 		fmt.Printf("Weather for %v\n", forecast.City)
-		_, err = fmt.Fprint(w, "Date\tTemperature\tPrecipitations\t\n")
+		_, err = fmt.Fprint(w, "Date\tTemperature\t\tPrecipitations\t\n")
 		if err != nil {
 			fmt.Println(err)
 			continue
 		}
 		for _, hourForecast := range forecast.Forecast {
-			_, err = fmt.Fprintf(w, "%v\t%vC°\t%v%%\t\n", hourForecast.DateTime.Format("02.01 Mon 15:04"), hourForecast.Temperature, hourForecast.Precipitations)
+			_, err = fmt.Fprintf(w, "%v\t%v C°\t\t%v%%\t\n", hourForecast.DateTime.Format("02.01 Mon 15:04"), hourForecast.Temperature, hourForecast.Precipitations)
 			if err != nil {
 				fmt.Println(err)
 				continue
